@@ -1,19 +1,23 @@
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    app: worker
   name: worker
+  labels:
+    app: mbeng44/worker
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
-      app: worker
+      app: mbeng44/worker
   template:
     metadata:
       labels:
-        app: worker
+        app: mbeng44/worker
     spec:
       containers:
-      - image: dockersamples/examplevotingapp_worker
-        name: worker
+      - name: woker
+        image: mbeng44/worker:latest
+        ports:
+        - containerPort: 80
+
