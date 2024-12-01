@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Clone') {
             steps {
-                git 'https://github.com/Primus-Learning/worker.git'
+                git 'https://github.com/mbeng44/worker.git'
             }
         }
         stage('Build Docker Image') {
