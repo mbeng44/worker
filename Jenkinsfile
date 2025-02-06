@@ -1,79 +1,51 @@
-def registry= "940090592876.dkr.ecr.us-east-1.amazonaws.com"
-def tag = ""
-def ms = ""
-def region = "us-east-1"
-
-pipeline{
+pipeline {
     agent any
-    stages{
-        stage("init"){
-            steps{
-                script{
-                    tag = getTag()
-                    ms = getMsName()
-                }
-            }
-        }
-        stage("Build Docker image"){
-            steps{
-                script{
-                    sh "docker build . -t ${registry}/${ms}:${tag}  "
+
+    environment {
+        DOCKER_HUB_REPO = 'mbeng44'
+        IMAGE_NAME = 'worker-app'
+        IMAGE_TAG = 'latest'
+        DOCKER_CREDENTIALS = '8461b105-3d7c-4d95-b34d-da4af62b3a16'
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                script {
+                    echo 'Cloning the worker repository...'
+                    git branch: 'main', url: 'https://github.com/mbeng44/worker.git'
                 }
             }
         }
 
-        stage("Login to Ecr"){
-            steps{
-                script{
-                    withAWS(region:"$region",credentials:'aws_creds'){
-                        sh "aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${registry}"
-                    }
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    echo 'Building Docker image...'
+                    docker.build("${DOCKER_HUB_REPO}/${IMAGE_NAME}:${IMAGE_TAG}")
                 }
             }
         }
 
-        stage("Docker push"){
-            steps{
-                script{
-                    withAWS(region:"$region",credentials:'aws_creds'){
-                        sh "docker push ${registry}/${ms}:${tag}"
-                    }
-                }
-            }
-        }
-
-        stage("Deploy to Dev"){
-            when{branch 'develop'}
-            steps{
-                script{
-                    withAWS(region:"$region",credentials:'aws_creds'){
-                        sh "aws eks update-kubeconfig --name vote-dev"
-                        sh "kubectl set image deploy/result result=${tag} -n vote "
-                        sh "kubectl rollout restart deploy/result -n vote"
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    echo 'Pushing Docker image to DockerHub...'
+                    docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CREDENTIALS}") {
+                        docker.image("${DOCKER_HUB_REPO}/${IMAGE_NAME}:${IMAGE_TAG}").push()
                     }
                 }
             }
         }
     }
-}
 
-def getMsName(){
-    print env.JOB_NAME
-    return env.JOB_NAME.split("/")[0]
-}
+    post {
+        always {
+            echo 'Pipeline completed.'
+        }
+        failure {
+            echo 'Pipeline failed. Check logs for details.'
+        }
+    }
 
-def getTag(){
- sh "ls -l"
- version = "1.3.0"
- print "version: ${version}"
 
- def tag = ""
-  if (env.BRANCH_NAME == "main"){
-    tag = version
-  } else if(env.BRANCH_NAME == "develop"){
-    tag = "${version}-develop"
-  } else {
-    tag = "${version}-${env.BRANCH_NAME}"
-  }
-return tag 
-}
