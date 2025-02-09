@@ -1,21 +1,14 @@
-FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:7.0 as build
 
-WORKDIR /app
+WORKDIR /source
+COPY *.csproj .
+RUN dotnet restore -a amd64
 
-COPY *.csproj ./
+COPY . .
+RUN dotnet publish -c release -o /app -a amd64 --self-contained false --no-restore
 
-RUN dotnet restore
-
-COPY . ./
-
-RUN dotnet publish -c Release -o /app/out
-
+# app image
 FROM mcr.microsoft.com/dotnet/runtime:7.0
-
 WORKDIR /app
-
-COPY --from=build /app/out .
-
-ENTRYPOINT ["dotnet", "worker.dll"]
-
-
+COPY --from=build /app .
+ENTRYPOINT ["dotnet", "Worker.dll"]
