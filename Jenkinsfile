@@ -3,7 +3,7 @@ pipeline {
     environment {
         AWS_ACCOUNT_ID = '205930645143'
         AWS_REGION = 'us-east-1'
-        IMAGE_NAME = "voting-app/worker"
+        IMAGE_NAME = "voting-app/worker1"
     }
     stages {
         stage('Checkout') {
