@@ -1,51 +1,38 @@
 pipeline {
     agent any
-
     environment {
-        DOCKER_HUB_REPO = 'mbeng44'
-        IMAGE_NAME = 'worker-app'
-        IMAGE_TAG = 'latest'
-        DOCKER_CREDENTIALS = '8461b105-3d7c-4d95-b34d-da4af62b3a16'
+        AWS_ACCOUNT_ID = '205930645143'
+        AWS_REGION = 'us-east-1'
+        IMAGE_NAME = "voting-app/worker"
     }
-
     stages {
-        stage('Clone Repository') {
+        stage('Checkout') {
             steps {
-                script {
-                    echo 'Cloning the worker repository...'
-                    git branch: 'main', url: 'https://github.com/mbeng44/worker.git'
-                }
+                git 'https://github.com/mbeng44/worker.git'
             }
         }
-
-        stage('Build Docker Image') {
+        stage('Build') {
             steps {
-                script {
-                    echo 'Building Docker image...'
-                    docker.build("${DOCKER_HUB_REPO}/${IMAGE_NAME}:${IMAGE_TAG}")
-                }
+                sh 'dotnet build'
             }
         }
-
-        stage('Push Docker Image') {
+        stage('Test') {
+            steps {
+                sh 'dotnet test'
+            }
+        }
+        stage('Docker Build & Push') {
             steps {
                 script {
-                    echo 'Pushing Docker image to DockerHub...'
-                    docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CREDENTIALS}") {
-                        docker.image("${DOCKER_HUB_REPO}/${IMAGE_NAME}:${IMAGE_TAG}").push()
-                    }
+                    def image = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}"
+                    sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${image}"
+                    sh "docker build -t ${image}:latest ."
+                    sh "docker push ${image}:latest"
                 }
             }
         }
     }
+}
 
-    post {
-        always {
-            echo 'Pipeline completed.'
-        }
-        failure {
-            echo 'Pipeline failed. Check logs for details.'
-        }
-    }
 
 
