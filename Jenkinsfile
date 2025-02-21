@@ -13,7 +13,7 @@ pipeline {
             steps {
                 git branch: 'main', 
                     credentialsId: 'aws-credentials', 
-                    url: 'https://github.com/mbeng44/results.git'
+                    url: 'https://github.com/mbeng44/worker.git'
             }
         }
 
